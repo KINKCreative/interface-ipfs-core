@@ -24,6 +24,7 @@ module.exports = (common) => {
     this.timeout(40 * 1000)
 
     let ipfs
+    let withGo
 
     function fixture (path) {
       return loadFixture(__dirname, path, 'interface-ipfs-core')
@@ -60,6 +61,7 @@ module.exports = (common) => {
         factory.spawnNode((err, node) => {
           expect(err).to.not.exist()
           ipfs = node
+          withGo = id.agentVersion.startsWith('go-ipfs')
           done()
         })
       })
@@ -978,6 +980,166 @@ module.exports = (common) => {
             done()
           })
         )
+      })
+    })
+
+    // MFS
+    // ipfs.files.stat
+    // ipfs.files.read
+    // ipfs.files.flush(path, [callback])
+    // ipfs.files.ls
+
+    describe('.mkdir', function () {
+      if (!withGo) {
+        console.log('Only supported by go-ipfs yet')
+        return this.skip()
+      }
+
+      it('make directory on root', (done) => {
+        ipfs.files.mkdir('/test', (err) => {
+          expect(err).to.not.exist()
+          done()
+        })
+      })
+
+      it('make directory and its parents', (done) => {
+        ipfs.files.mkdir('/test/lv1/lv2', { p: true }, (err) => {
+          expect(err).to.not.exist()
+          done()
+        })
+      })
+
+      it('make already existent directory', (done) => {
+        ipfs.files.mkdir('/', (err) => {
+          expect(err).to.exist()
+          done()
+        })
+      })
+    })
+
+    describe('.write', function () {
+      if (!withGo) {
+        console.log('Only supported by go-ipfs yet')
+        return this.skip()
+      }
+
+      it('expect error', (done) => {
+        ipfs.files.write('/test/a', Buffer.from('Hello, world!'), (err) => {
+          expect(err).to.exist()
+          done()
+        })
+      })
+
+      it('expect no error', (done) => {
+        ipfs.files.write('/test/a', Buffer.from('Hello, world!'), {create: true}, (err) => {
+          expect(err).to.not.exist()
+          done()
+        })
+      })
+    })
+
+    describe('.cp', function () {
+      if (!withGo) {
+        console.log('Only supported by go-ipfs yet')
+        return this.skip()
+      }
+
+      it('copy file, expect error', (done) => {
+        ipfs.files.cp(['/test/c', '/test/b'], (err) => {
+          expect(err).to.exist()
+          done()
+        })
+      })
+
+      it('copy file, expect no error', (done) => {
+        ipfs.files.cp(['/test/a', '/test/b'], (err) => {
+          expect(err).to.not.exist()
+          done()
+        })
+      })
+
+      it('copy dir, expect error', (done) => {
+        ipfs.files.cp(['/test/lv1/lv3', '/test/lv1/lv4'], (err) => {
+          expect(err).to.exist()
+          done()
+        })
+      })
+
+      it('copy dir, expect no error', (done) => {
+        ipfs.files.cp(['/test/lv1/lv2', '/test/lv1/lv3'], (err) => {
+          expect(err).to.not.exist()
+          done()
+        })
+      })
+    })
+
+    describe('.mv', function () {
+      if (!withGo) {
+        console.log('Only supported by go-ipfs yet')
+        return this.skip()
+      }
+
+      it('move file, expect error', (done) => {
+        ipfs.files.mv(['/test/b', '/test/a'], (err) => {
+          expect(err).to.exist()
+          done()
+        })
+      })
+
+      it('move file, expect no error', (done) => {
+        ipfs.files.mv(['/test/a', '/test/c'], (err) => {
+          expect(err).to.not.exist()
+          done()
+        })
+      })
+
+      it('move dir, expect error', (done) => {
+        ipfs.files.mv(['/test/lv1/lv3', '/test/lv1'], (err) => {
+          expect(err).to.exist()
+          done()
+        })
+      })
+
+      it('move dir, expect no error', (done) => {
+        ipfs.files.mv(['/test/lv1/lv2', '/test/lv1/lv4'], (err) => {
+          expect(err).to.not.exist()
+          done()
+        })
+      })
+    })
+
+    describe('.rm', function () {
+      if (!withGo) {
+        console.log('Only supported by go-ipfs yet')
+        return this.skip()
+      }
+
+      it('remove file, expect error', (done) => {
+        ipfs.files.rm('/test/a', (err) => {
+          expect(err).to.exist()
+          done()
+        })
+      })
+
+      it('remove file, expect no error', (done) => {
+        ipfs.files.rm('/test/c', (err) => {
+          expect(err).to.not.exist()
+          done()
+        })
+      })
+
+      it('remove dir, expect error', (done) => {
+        ipfs.files.rm('/test/lv1/lv4', (err) => {
+          expect(err).to.exist()
+          done()
+        })
+      })
+
+      it('remove dir, expect no error', (done) => {
+        ipfs.files.rm('/test/lv1/lv4', {recursive: true}, (err) => {
+          expect(err).to.not.exist()
+          done()
+        })
       })
     })
   })
